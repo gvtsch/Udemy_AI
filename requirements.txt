@@ -1,0 +1,15 @@
+# Libraries
+tensorflow==2.4.*
+scikit-learn
+numpy==1.19.2
+matplotlib
+pygame
+gym
+
+# Linting/Tooling
+pylint
+flake8
+mypy
+isort
+autopep8
+pre-commit
