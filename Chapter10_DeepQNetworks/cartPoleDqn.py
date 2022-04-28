@@ -5,11 +5,11 @@ from tensorflow.keras.optimizers import Adam
 import numpy as np
 
 class DQN(tf.keras.Model): # Erben von einer Klasse
-    def __init__(self, state_shape, num_action, learning_rate):
+    def __init__(self, state_shape, num_actions, learning_rate):
         super().__init__()  # Sicherstellen, dass alles, was von der Base-Class geerbt wird, 
                             # auch initialisiert wird, mit dessen Konstruktor
         self.state_shape = state_shape
-        self.num_action = num_action
+        self.num_actions = num_actions
         self.learning_rate = learning_rate
         self.internal_model = self.build_model()
 
