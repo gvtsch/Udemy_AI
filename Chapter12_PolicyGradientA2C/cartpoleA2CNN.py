@@ -4,41 +4,38 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 import numpy as np
 
-class DQN(tf.keras.Model): # Erben von einer Klasse
-    def __init__(self, state_shape, num_actions, learning_rate):
-        super().__init__()  # Sicherstellen, dass alles, was von der Base-Class geerbt wird, 
-                            # auch initialisiert wird, mit dessen Konstruktor
-        self.state_shape = state_shape
+class Actor(tf.keras.Model): # Erben von einer Klasse
+    def __init__(self, num_observations: int, num_actions: int, learning_rate: int):
+        super().__init__()
+        self.num_observations = num_observations
         self.num_actions = num_actions
         self.learning_rate = learning_rate
         self.internal_model = self.build_model()
 
-    def build_model(self):
-        input_state = Input(shape=self.state_shape)
-        x = Dense(units=24)(input_state)
+    def build_model(self) -> Model:
+        actor_in = Input(shape=self.num_observations)
+        x = Dense(units=24)(actor_in)
         x = Activation("relu")(x)
-        x = Dense(units=24)(x)
-        x = Activation("relu")(x)
-        q_value_pred = Dense(self.num_actions)(x) 
+        x = Dense(self.num_actions)(x)
+        actor_out = Activation("softmax")(x)
         model = Model(
-            inputs=input_state,
-            outputs=q_value_pred
+            inputs=actor_in,
+            outputs=actor_out
         )
         model.compile(
-            loss="mse",
+            loss="categorical_crossentropy",
             optimizer=Adam(learning_rate=self.learning_rate)
         )
         return model
 
-    def call(self, inputs):
-        # Soll model.predict darstellen
-        return self.internal_model(inputs).numpy() # So schneller, als predict-Methode
+    def call(self, states: np.ndarray) -> np.ndarray:
+        return self.internal_model(states).numpy() 
 
-    def fit(self, states, q_values):
+    def fit(self, states: np.ndarray, actions: np.ndarray):
         self.internal_model.fit(
             x=states,
-            y=q_values,
-            verbose=0 # Keine Ausgabe in der Konsole
+            y=actions,
+            verbose=0 
         )
 
     def update_model(self, other_model):
@@ -49,3 +46,60 @@ class DQN(tf.keras.Model): # Erben von einer Klasse
 
     def save_model(self, path):
         self.internal_model.save_weights(path)
+
+# Folgendes wäre auch mit einer weiteren Vererbung möglich und auch eleganter
+class Critic(tf.keras.Model):
+    def __init__(self, num_observations: int, num_values: int, learning_rate: float):
+        super().__init__() 
+        self.num_observations = num_observations
+        self.num_values = num_values
+        self.learning_rate = learning_rate
+        self.internal_model = self.build_model()
+
+    def build_model(self) -> Model:
+        critic_in = Input(shape=self.num_observations)
+        x = Dense(units=24)(critic_in)
+        x = Activation("relu")(x)
+        critic_out = Dense(self.num_values)(x) 
+        model = Model(
+            inputs=critic_in,
+            outputs=critic_out
+        )
+        model.compile(
+            loss="mse",
+            optimizer=Adam(learning_rate=self.learning_rate)
+        )
+        return model
+
+    def call(self, states: np.ndarray) -> np.ndarray:
+        return self.internal_model(states).numpy() 
+
+    def fit(self, states: np.ndarray, values: np.ndarray):
+        self.internal_model.fit(
+            x=states,
+            y=values,
+            verbose=0 
+        )
+
+    def update_model(self, other_model):
+        self.internal_model.set_weights(other_model.get_weights())
+
+    def load_model(self, path):
+        self.internal_model.load_weights(path)
+
+    def save_model(self, path):
+        self.internal_model.save_weights(path)
+
+if __name__ == "__main__":
+    actor = Actor(
+        num_observations=4,
+        num_actions=2,
+        learning_rate=0.001
+    )
+    actor.internal_model.summary()
+    critic = Critic(
+        num_observations=4,
+        num_values=1,
+        learning_rate=1e-5
+    )
+    critic.internal_model.summary()
